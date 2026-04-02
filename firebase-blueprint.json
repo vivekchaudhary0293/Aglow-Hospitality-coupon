@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the coupon generation app.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique ID of the user." },
+        "email": { "type": "string", "format": "email", "description": "The email of the user." },
+        "role": { "type": "string", "enum": ["admin", "staff"], "description": "The role of the user." }
+      },
+      "required": ["uid", "email"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "A cash coupon generated for a service.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the coupon." },
+        "type": { "type": "string", "description": "The type of coupon." },
+        "price": { "type": "number", "description": "The price of the coupon." },
+        "quantity": { "type": "integer", "description": "The quantity of coupons generated in this batch." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the coupon was generated." },
+        "generatedBy": { "type": "string", "description": "The UID of the user who generated the coupon." },
+        "businessName": { "type": "string", "description": "The name of the business." }
+      },
+      "required": ["id", "type", "price", "quantity", "timestamp", "generatedBy", "businessName"]
+    },
+    "Item": {
+      "title": "Item",
+      "description": "A menu item with a name and price.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the item." },
+        "name": { "type": "string", "description": "The name of the item." },
+        "price": { "type": "number", "description": "The price of the item." },
+        "category": { "type": "string", "description": "The category of the item." },
+        "imageUrl": { "type": "string", "description": "Optional image URL for the item." }
+      },
+      "required": ["id", "name", "price"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "Store user profile information."
+    },
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Store generated coupon history."
+    },
+    "/items/{itemId}": {
+      "schema": "Item",
+      "description": "Store menu items and their rates."
+    }
+  }
+}

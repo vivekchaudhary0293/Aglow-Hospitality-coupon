@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required) - The unique ID of the user.
+    //   - email: string (required, format: email) - The email of the user.
+    //   - role: string (required, enum: ["admin", "staff"]) - The role of the user.
+    //
+    // Collection: coupons
+    // Document ID: {couponId}
+    // Fields:
+    //   - id: string (required) - The unique ID of the coupon.
+    //   - type: string (required, enum: ["Lunch", "Dinner", "Tea", "Snacks", "Tea & Snacks"]) - The type of coupon.
+    //   - price: number (required) - The price of the coupon.
+    //   - quantity: integer (required) - The quantity of coupons generated in this batch.
+    //   - timestamp: string (required, format: date-time) - When the coupon was generated.
+    //   - generatedBy: string (required) - The UID of the user who generated the coupon.
+    //   - businessName: string (required) - The name of the business.
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (
+          (request.auth.token.email == "vivekchaudhary0293@gmail.com" && request.auth.token.email_verified == true) ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+        );
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.role in ['admin', 'staff'];
+    }
+
+    function isValidCoupon(data) {
+      return data.keys().hasAll(['id', 'type', 'price', 'quantity', 'timestamp', 'generatedBy', 'businessName']) &&
+             data.id is string &&
+             data.price is number &&
+             data.quantity is int &&
+             data.timestamp is string &&
+             data.generatedBy is string &&
+             data.businessName == "Aglow Hospitality Sevices Ltd";
+    }
+
+    function isValidItem(data) {
+      return data.keys().hasAll(['id', 'name', 'price']) &&
+             data.id is string &&
+             data.name is string &&
+             data.price is number;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin());
+    }
+
+    match /coupons/{couponId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidCoupon(request.resource.data) && request.resource.data.generatedBy == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    match /items/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && isValidItem(request.resource.data);
+    }
+  }
+}
